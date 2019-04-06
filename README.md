@@ -11,3 +11,4 @@ WebApp is a script that will syn a local directory to S3 bucket and optionally c
 WebApp has following features:
  - List Buckets
  - List contents of specified Bucket
+ - Create and Setup buckets
