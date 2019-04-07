@@ -12,3 +12,4 @@ WebApp has following features:
  - List Buckets
  - List contents of specified Bucket
  - Create and Setup buckets
+ - Sync Directory tree to bucket

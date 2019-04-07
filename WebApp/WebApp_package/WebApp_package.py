@@ -1,6 +1,8 @@
 import boto3
 import click
 from botocore.exceptions import ClientError
+from pathlib import Path
+import mimetypes
 
 session = boto3.Session(profile_name='shotty')
 s3 = session.resource('s3')
@@ -28,16 +30,16 @@ def list_bucket_objects(bucket):
 @click.argument('bucket')
 def setup_bucket(bucket):
     "Create and Configure S3 bucket"
-    s3_bucket = None        
+    s3_bucket = None
     try :
-    s3_bucket = s3.create_bucket(Bucket = bucket
+        s3_bucket = s3.create_bucket(Bucket = bucket
     #    CreateBucketConfiguration = {                      --Use this if you want to give more configuration to your bucket
     #        'LocationConstraint': session.region_name}     --Use this if you are using different region from 'us-east-1'
             )
 
     except ClientError as e:
-        if e.response['Error']['Code'] = 'BucketAlreadyOwnedByYou':
-        s3_bucket = s3.Bucket(bucket)
+        if e.response['Error']['Code'] == 'BucketAlreadyOwnedByYou':
+            s3_bucket = s3.Bucket(bucket)
 
         else:
             raise e
@@ -75,6 +77,33 @@ def setup_bucket(bucket):
 
     #    url = "https://%s.s3-website.us-east-1.amazonaws.com" %s s3_bucket.name
 
+def s3_upload(s3_bucket, path, key):
+    "Upload the content to S3"
+    content_type = mimetypes.guess_type(key)[0] or 'text/html'
+    s3_bucket.upload_file(
+        path,
+        key,
+        ExtraArgs={
+            'ContentType' : 'text/html'
+        })
+
+
+@cli.command('sync')
+@click.argument('pathname', type=click.Path(exists=True))
+@click.argument('bucket')
+def sync(pathname, bucket):
+    "This contents of PATHNAME to BUCKET"
+
+    s3_bucket = s3.Bucket(bucket)
+
+    root = Path(pathname).expanduser().resolve()
+    def handle_directory(target):
+        for p in target.iterdir():
+            if p.is_dir(): handle_directory(p)
+            if p.is_file(): s3_upload(s3_bucket, str(p), str(p.relative_to(root)))
+
+    handle_directory(root)
+    #pass
 
 if __name__ == '__main__':
     cli()
